@@ -81,6 +81,26 @@ class AvanceController extends Controller
 
         $proyecto = $postulante->proyecto;
 
+        // Verificar si ya existe un avance pendiente o en revisión
+        // que no haya sido revisado por el tribunal líder
+        $avancePendiente = Avance::where('proyecto_id', $proyecto->id)
+            ->whereIn('estado', ['pendiente', 'en_revision'])
+            ->whereHas('revisiones', function ($q) use ($proyecto) {
+                $lideres = $proyecto->tribunales()
+                    ->wherePivot('rol', 'lider')
+                    ->pluck('user_id'); // obtenemos user_id del tribunal líder
+
+                $q->whereIn('revisor_id', $lideres)
+                    ->whereNull('informe_path'); // aún no revisado
+            })
+            ->exists();
+
+        if ($avancePendiente) {
+            return redirect()->route('avances.mis')
+                ->with('error', 'No puedes subir un nuevo avance hasta que el tribunal líder revise el anterior.');
+        }
+
+
         // Guardar archivo
         $archivoPath = $request->file('archivo')->store('avances', 'public');
 
@@ -126,7 +146,7 @@ class AvanceController extends Controller
             ]);
         }
 
-         // Enviar correo a cada tribunal (con manejo de errores)
+        // Enviar correo a cada tribunal 
         // foreach ($tribunales as $userId) {
         //     $tribunalUser = \App\Models\User::find($userId);
         //     if ($tribunalUser && $tribunalUser->email) {
@@ -263,6 +283,12 @@ class AvanceController extends Controller
 
         $proyecto = $user->postulante->proyecto;
 
+        // Calcular plazo máximo (2 años desde resolución)
+        $fechaResolucion = $proyecto->fecha;
+        $fechaLimite = $fechaResolucion ? Carbon::parse($fechaResolucion)->addYears(2) : null;
+        $diasRestantes = now()->startOfDay()->diffInDays($fechaLimite->startOfDay(), false);
+
+
         // Obtener los IDs de los tribunales líderes
         // La relación debe ser del proyecto a la tabla 'proyecto_tribunal'
         // y luego a la tabla 'tribunales' para obtener el 'user_id' asociado.
@@ -284,7 +310,7 @@ class AvanceController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return view('avances.mis', compact('avances'));
+        return view('avances.mis', compact('avances', 'diasRestantes', 'fechaLimite'));
     }
 
 
@@ -317,7 +343,7 @@ class AvanceController extends Controller
             // Usamos pluck('id') porque $avance->proyecto->tribunales es una colección de modelos User.
             $lideresUserIds = $avance->proyecto->tribunales
                 ->where('pivot.rol', 'lider')
-                ->pluck('id') 
+                ->pluck('id')
                 ->toArray();
 
             // Filtramos solo revisiones de los líderes

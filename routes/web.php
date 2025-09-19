@@ -40,8 +40,12 @@ Route::middleware([
 */
 Route::get('postulantes/eliminados', [PostulanteController::class, 'eliminados'])->name('postulantes.eliminados');
 Route::post('postulantes/{id}/restore', [PostulanteController::class, 'restore'])->name('postulantes.restore');
-Route::resource('postulantes', PostulanteController::class)->parameters(['postulantes' => 'postulante']);
 
+// Importar desde API (flujo con formulario completar.blade.php)
+Route::post('postulantes/importar-api', [PostulanteController::class, 'importarDesdeApi'])->name('postulantes.importar.api');
+
+// CRUD normal
+Route::resource('postulantes', PostulanteController::class)->parameters(['postulantes' => 'postulante']);
 /*
 |--------------------------------------------------------------------------
 | Tutores

@@ -17,6 +17,11 @@
             🗑 Ver postulantes eliminados
         </a><br>
 
+        <form action="{{ route('postulantes.importar.api') }}" method="POST">
+            @csrf
+            <input type="text" name="ci" placeholder="Ingrese CI">
+            <button type="submit" class="inline-block mb-4 bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">Importar desde API</button>
+        </form>
 
         <!-- Tabla -->
         <table class="min-w-full border-collapse block md:table">

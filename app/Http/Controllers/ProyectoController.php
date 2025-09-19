@@ -11,6 +11,8 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
+
 
 // Controlador para la gestión de trabajos de grado
 
@@ -22,6 +24,7 @@ class ProyectoController extends Controller
     // Muestra todos los proyectos
     public function index(Request $request)
     {
+
         // Se carga la consulta base con las relaciones necesarias 
         $query = Proyecto::with(['postulante', 'tutor', 'modalidad']);
 
@@ -44,7 +47,7 @@ class ProyectoController extends Controller
                     ->orWhere('materno', 'like', $searchTerm);
             });
         }
-        
+
         // Filtro por tutor (busca por nombre o apellidos)
         if ($request->filled('search_tutor')) {
             $searchTerm = '%' . $request->input('search_tutor') . '%';
@@ -74,6 +77,23 @@ class ProyectoController extends Controller
 
         // Aplica el orden y la paginación, manteniendo los parámetros de la URL
         $proyectos = $query->orderBy('titulo')->paginate(10)->withQueryString();
+
+        // Calcular fecha límite y días restantes para cada proyecto
+        $proyectos->getCollection()->transform(function ($proyecto) {
+            if ($proyecto->fecha) {
+                $fechaResolucion = Carbon::parse($proyecto->fecha);
+                $fechaLimite = $fechaResolucion->copy()->addYears(2);
+                $diasRestantes = now()->startOfDay()->diffInDays($fechaLimite->startOfDay(), false);
+                $proyecto->fecha_limite = $fechaLimite;
+                $proyecto->dias_restantes = $diasRestantes;
+                $proyecto->vencido = $diasRestantes < 0;
+            } else {
+                $proyecto->fecha_limite = null;
+                $proyecto->dias_restantes = null;
+                $proyecto->vencido = false;
+            }
+            return $proyecto;
+        });
 
         return view('proyectos.index', compact('proyectos'));
     }

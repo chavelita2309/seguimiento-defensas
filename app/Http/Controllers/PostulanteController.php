@@ -6,6 +6,7 @@ use App\Models\Postulante;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use App\Services\TextilApiService;
 
 // Controlador para la gestión de postulantes
 
@@ -21,6 +22,54 @@ class PostulanteController extends Controller
         $postulantes = Postulante::whereNull('deleted_at')->orderBy('paterno')->paginate(10);
         return view('postulantes.index', compact('postulantes'));
     }
+
+    //Importar postulante desde API + completar manualmente datos faltantes
+    public function importarDesdeApi(Request $request, TextilApiService $apiService)
+    {
+        $request->validate([
+            'ci' => 'required|string',
+            'ru' => 'required|string|unique:postulantes,ru',
+            'fecha_nacimiento' => 'required|date',
+        ]);
+
+        $data = $apiService->getPostulanteByCI($request->ci);
+
+        if (!$data) {
+            return back()->with('error', 'No se encontraron datos en el servicio externo.');
+        }
+
+        // Verificar si ya existe en BD
+        $existe = Postulante::where('ci', $data['ci'])->first();
+        if ($existe) {
+            return back()->with('error', 'Este postulante ya está registrado en el sistema.');
+        }
+
+        // Crear usuario
+        $primerNombre = explode(' ', trim($data['nombre']))[0];
+        $user = User::create([
+            'name' => $data['nombre'] . ' ' . $data['paterno'],
+            'email' => $data['email'],
+            'password' => \Hash::make($primerNombre . '123'),
+        ]);
+        $user->assignRole('postulante');
+
+        // Crear postulante
+        Postulante::create([
+            'nombre' => $data['nombre'],
+            'paterno' => $data['paterno'],
+            'materno' => $data['materno'],
+            'ci' => $data['ci'],
+            'ru' => $request->ru,
+            'fecha_nacimiento' => $request->fecha_nacimiento,
+            'email' => $data['email'],
+            'telefono' => $data['celular'] ?? 'Sin número',
+            'user_id' => $user->id,
+        ]);
+
+        return redirect()->route('postulantes.index')->with('success', 'Postulante importado desde API correctamente.');
+    }
+
+
 
     /**
      * Show the form for creating a new resource.
@@ -146,7 +195,7 @@ class PostulanteController extends Controller
         }
 
         return redirect()->route('postulantes.index')
-            ->with('success', 'Postulante restaurado correctamente' );
+            ->with('success', 'Postulante restaurado correctamente');
     }
 
 

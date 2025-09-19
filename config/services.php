@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'textil' => [
+        'url' => env('API_TEXTIL_URL'),
+        'token' => env('API_TEXTIL_TOKEN'),
+    ],
+
 ];

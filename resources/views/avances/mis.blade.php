@@ -15,6 +15,23 @@
             </div>
         @endif
 
+        {{-- 🚨 ALERTA DE PLAZO DE PROYECTO --}}
+        @if (isset($diasRestantes))
+            @if ($diasRestantes > 0)
+                <div class="mb-4 p-4 rounded-lg bg-yellow-100 text-yellow-800">
+                    ⏳ Te quedan <strong>{{ $diasRestantes }}</strong> días para defender tu proyecto
+                    (límite: {{ \Carbon\Carbon::parse($fechaLimite)->format('d/m/Y') }}).
+                </div>
+            @else
+                <div class="mb-4 p-4 rounded-lg bg-red-100 text-red-800">
+                    ⚠️ Tu plazo de 2 años ha vencido
+                    (desde {{ \Carbon\Carbon::parse($fechaLimite)->format('d/m/Y') }}).
+                    El proyecto será archivado automáticamente.
+                </div>
+            @endif
+        @endif
+
+
         @if ($avances->isEmpty())
             <p class="text-gray-600">Aún no has registrado ningún avance.</p>
         @else
