@@ -9,6 +9,14 @@
             <div class="alert alert-success">{{ session('success') }}</div>
         @endif
 
+        <form action="{{ route('tribunales.importar.api') }}" method="POST">
+            @csrf
+            <button type="submit"
+                class="inline-block mb-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Registrar nuevo
+                tribunal</button>
+            <input type="text" name="ci" placeholder="Ingrese CI">
+        </form>
+
         <a href="{{ route('tribunales.create') }}"
             class="inline-block mb-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Nuevo
             Tribunal</a><br>

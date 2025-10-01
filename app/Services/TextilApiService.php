@@ -14,16 +14,15 @@ class TextilApiService
         $this->baseUrl = config('services.textil.url');
         $this->token   = config('services.textil.token');
     }
-
-    public function getPostulanteByCI($ci)
+      // Consulta única para personas (postulantes, tutores, tribunales)
+    public function getPersonaByCI($ci)
     {
         $url = "{$this->baseUrl}/postulante-textil/ci/{$ci}";
 
         $response = Http::withToken($this->token)->get($url);
 
         if ($response->successful()) {
-            $data = $response->json();
-            return $data;
+            return $response->json();
         }
 
         return null;

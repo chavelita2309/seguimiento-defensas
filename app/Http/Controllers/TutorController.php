@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Tutor;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use App\Services\TextilApiService;
 
 class TutorController extends Controller
 {
@@ -22,6 +23,79 @@ class TutorController extends Controller
     /**
      * Show the form for creating a new resource.
      */
+    // Importar tutor desde API + completar manualmente datos faltantes
+    public function importarDesdeApi(Request $request, TextilApiService $apiService)
+    {
+        $request->validate([
+            'ci' => 'required|string',
+        ]);
+
+        $data = $apiService->getPersonaByCI($request->ci);
+
+
+        if (!$data || empty($data['data'])) {
+            return back()->with('error', 'No se encontraron datos en el servicio externo.');
+        }
+
+        $tutorApi = $data['data'][0];
+
+        // Verificar si ya existe en BD
+        $existe = Tutor::where('ci', $tutorApi['ci'])->first();
+        if ($existe) {
+            return back()->with('error', 'Este tutor ya está registrado en el sistema.');
+        }
+
+        // Enviar datos a la vista completar.blade.php
+        return view('tutores.completar', ['data' => $tutorApi]);
+    }
+    // guardar el tutor con datos completados
+    public function storeDesdeApi(Request $request)
+    {
+        $request->validate([
+            'ci' => 'required|unique:tutores,ci',
+            'fecha_nacimiento' => 'required|date',
+            'nombre' => 'required|string',
+            'paterno' => 'nullable|string',
+            'materno' => 'nullable|string',
+            'email' => 'required|email|unique:tutores,email',
+            'telefono' => 'required|string|max:20',
+            'grado' => 'required|string|max:50',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            $primerNombre = explode(' ', trim($request->nombre))[0];
+            $user = User::create([
+                'name' => trim($request->nombre . ' ' . ($request->paterno ?? '')),
+                'email' => $request->email,
+                'password' => \Hash::make($primerNombre . '123'),
+            ]);
+        }
+
+        // Asignar rol tutor si aún no lo tiene
+        if (!$user->hasRole('tutor')) {
+            $user->assignRole('tutor');
+        }
+
+        // Crear tutor asociado
+        Tutor::firstOrCreate(
+            ['ci' => $request->ci],
+            [
+                'nombre' => $request->nombre,
+                'paterno' => $request->paterno,
+                'materno' => $request->materno,
+                'fecha_nacimiento' => $request->fecha_nacimiento,
+                'email' => $request->email,
+                'telefono' => $request->telefono,
+                'grado' => $request->grado,
+                'user_id' => $user->id,
+            ]
+        );
+
+        return redirect()->route('tutores.index')->with('success', 'Tutor importado y guardado correctamente.');
+    }
+
     // Muestra el formulario para crear un nuevo tutor
     public function create()
     {
@@ -38,8 +112,8 @@ class TutorController extends Controller
         //
         $request->validate([
             'nombre' => 'required|string|max:100',
-            'paterno' => 'required|string|max:100',
-            'materno' => 'required|string|max:100',
+            'paterno' => 'nullable|string|max:100',
+            'materno' => 'nullable|string|max:100',
             'fecha_nacimiento' => 'required|date',
             'ci' => 'required|unique:tutores,ci',
             'email' => 'required|email|unique:tutores,email',
@@ -47,30 +121,36 @@ class TutorController extends Controller
             'grado' => 'required|string|max:50',
         ]);
 
-        // Crear usuario asociado
-        $primerNombre = explode(' ', trim($request->nombre))[0];
-        $user = User::create([
-            'name' => $request->nombre . ' ' . $request->paterno,
-            'email' => $request->email,
-            'password' => Hash::make($primerNombre . '123'), // contraseña por defecto
-        ]);
+        $user = User::where('email', $request->email)->first();
 
-        // Asignar rol "tutor"
-        $user->assignRole('tutor');
+        if (!$user) {
+            $primerNombre = explode(' ', trim($request->nombre))[0];
+            $user = User::create([
+                'name' => trim($request->nombre . ' ' . ($request->paterno ?? '')),
+                'email' => $request->email,
+                'password' => \Hash::make($primerNombre . '123'),
+            ]);
+        }
+
+        // Asignar rol tutor si aún no lo tiene
+        if (!$user->hasRole('tutor')) {
+            $user->assignRole('tutor');
+        }
 
         // Crear tutor asociado
-
-        Tutor::create([
-            'nombre' => $request->nombre,
-            'paterno' => $request->paterno,
-            'materno' => $request->materno,
-            'fecha_nacimiento' => $request->fecha_nacimiento,
-            'ci' => $request->ci,
-            'email' => $request->email,
-            'telefono' => $request->telefono,
-            'grado' => $request->grado,
-            'user_id' => $user->id,
-        ]);
+        Tutor::firstOrCreate(
+            ['ci' => $request->ci],
+            [
+                'nombre' => $request->nombre,
+                'paterno' => $request->paterno,
+                'materno' => $request->materno,
+                'fecha_nacimiento' => $request->fecha_nacimiento,
+                'email' => $request->email,
+                'telefono' => $request->telefono,
+                'grado' => $request->grado,
+                'user_id' => $user->id,
+            ]
+        );
 
         return redirect()->route('tutores.index')->with('success', 'Tutor registrado correctamente.');
     }
@@ -100,8 +180,8 @@ class TutorController extends Controller
     {
         $request->validate([
             'nombre' => 'required|string|max:100',
-            'paterno' => 'required|string|max:100',
-            'materno' => 'required|string|max:100',
+            'paterno' => 'nullable|string|max:100',
+            'materno' => 'nullable|string|max:100',
             'fecha_nacimiento' => 'required|date',
             'ci' => 'required|unique:tutores,ci,' . $tutor->id,
             'email' => 'required|email|unique:tutores,email,' . $tutor->id,

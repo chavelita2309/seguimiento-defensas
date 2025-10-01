@@ -9,19 +9,20 @@
             <div class="alert alert-success">{{ session('success') }}</div>
         @endif
 
-        <a href="{{ route('postulantes.create') }}"
+         <form action="{{ route('postulantes.importar.api') }}" method="POST">
+            @csrf
+            <button type="submit" class="inline-block mb-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Registrar nuevo postulante</button>
+             <input type="text" name="ci" placeholder="Ingrese CI">
+        </form>
+        {{-- <a href="{{ route('postulantes.create') }}"
             class="inline-block mb-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Nuevo
-            Postulante</a><br>
+            Postulante</a><br> --}}
         <a href="{{ route('postulantes.eliminados') }}"
             class="inline-block mb-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
             🗑 Ver postulantes eliminados
         </a><br>
 
-        <form action="{{ route('postulantes.importar.api') }}" method="POST">
-            @csrf
-            <input type="text" name="ci" placeholder="Ingrese CI">
-            <button type="submit" class="inline-block mb-4 bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">Importar desde API</button>
-        </form>
+       
 
         <!-- Tabla -->
         <table class="min-w-full border-collapse block md:table">

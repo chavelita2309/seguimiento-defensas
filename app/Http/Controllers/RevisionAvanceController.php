@@ -139,7 +139,7 @@ class RevisionAvanceController extends Controller
         $revision->fecha_revision = now();
         $revision->save();
 
-        // Actualizar estado general del avance
+                // Actualizar estado general del avance
         $avance = $revision->avance;
         $revisiones = $avance->revisiones;
 
@@ -236,7 +236,7 @@ class RevisionAvanceController extends Controller
         // Generar PDF con todas las variables que la vista espera
         $pdf = Pdf::loadView('reportes.informe_final', compact(
             'revision',
-            'proyecto',
+            'proyecto', 
             'postulante',
             'tutor',
             'tribunales'

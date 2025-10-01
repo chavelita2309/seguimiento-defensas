@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl">
-            Sistema Web de Seguimiento y Control de Titulación - Completar Registro de Postulante
+            Sistema Web de Seguimiento y Control de Titulación - Completar Registro de Tutor
         </h2>
     </x-slot>
 
@@ -9,10 +9,10 @@
         <div class='w-full max-w-lg px-10 py-8 mx-auto bg-white rounded-lg shadow-xl'>
             <div class='max-w-md mx-auto space-y-6'>
 
-                <form action="{{ route('postulantes.storeDesdeApi') }}" method="POST">
+                <form action="{{ route('tutores.storeDesdeApi') }}" method="POST">
                     @csrf
 
-                    <h2 class="text-2xl font-bold">Completar datos del postulante</h2>
+                    <h2 class="text-2xl font-bold">Completar datos del tutor</h2>
                     <p class="my-4 opacity-70">Complete solo los datos faltantes</p>
                     <hr class="my-6">
 
@@ -36,11 +36,11 @@
 
                     {{-- CI --}}
                     <label class="uppercase text-sm font-bold opacity-70">Cédula de identidad</label>
-                    <input type="text" class="p-3 mt-2 mb-4 w-full bg-slate-200 rounded" value="{{ $data['ci'] }}"
-                        readonly>
+                    <input type="text" class="p-3 mt-2 mb-4 w-full bg-slate-200 rounded"
+                        value="{{ $data['ci'] }}" readonly>
                     <input type="hidden" name="ci" value="{{ $data['ci'] }}">
 
-                    {{-- Email --}}
+                   {{-- Email --}}
                     <label class="uppercase text-sm font-bold opacity-70">Correo electrónico</label>
                     <input type="email" name="email" class="p-3 mt-2 mb-4 w-full bg-slate-200 rounded"
                         value="{{ old('email', $data['email'] ?? '') }}" required>
@@ -54,14 +54,16 @@
                         value="{{ $data['celular'] }}" readonly>
                     <input type="hidden" name="telefono" value="{{ $data['celular'] }}">
 
-                    {{-- RU (manual) --}}
-                    <label class="uppercase text-sm font-bold opacity-70">Registro universitario</label>
-                    <input type="text" required class="p-3 mt-2 mb-4 w-full bg-slate-200 rounded" name="ru">
-
-                    {{-- Fecha de nacimiento (manual) --}}
+                    {{-- Fecha de nacimiento --}}
                     <label class="uppercase text-sm font-bold opacity-70">Fecha de nacimiento</label>
-                    <input type="date" required class="p-3 mt-2 mb-4 w-full bg-slate-200 rounded"
-                        name="fecha_nacimiento">
+                    <input type="date" required class="p-3 mt-2 mb-4 w-full bg-slate-200 rounded" name="fecha_nacimiento">
+                    
+                    {{-- Grado académico --}}
+                    <label class="uppercase text-sm font-bold opacity-70">Grado académico</label>
+                    <input type="text" required class="p-3 mt-2 mb-4 w-full bg-slate-200 rounded" name="grado" placeholder="Ingrese el grado académico">
+
+                    {{-- Botones --}}
+
 
                     <div class="flex flex-wrap gap-2">
                         <!-- Botón Guardar -->
@@ -69,7 +71,7 @@
                             class="inline-block py-3 px-6 my-2 bg-green-600 text-white font-medium rounded hover:bg-green-700 transition duration-300" />
 
                         <!-- Botón Cancelar -->
-                        <a href="{{ route('postulantes.index') }}"
+                        <a href="{{ route('tutores.index') }}"
                             class="inline-block py-3 px-6 my-2 bg-red-600 text-white font-medium rounded hover:bg-red-700 transition duration-300">
                             Cancelar
                         </a>

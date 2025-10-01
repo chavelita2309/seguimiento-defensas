@@ -8,6 +8,13 @@
         @if (session('success'))
             <div class="alert alert-success">{{ session('success') }}</div>
         @endif
+        <form action="{{ route('tutores.importar.api') }}" method="POST">
+            @csrf
+            <button type="submit"
+                class="inline-block mb-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Registrar nuevo
+                tutor</button>
+            <input type="text" name="ci" placeholder="Ingrese CI">
+        </form>
 
         <a href="{{ route('tutores.create') }}"
             class="inline-block mb-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Nuevo

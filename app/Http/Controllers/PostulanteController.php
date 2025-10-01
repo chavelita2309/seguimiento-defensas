@@ -28,49 +28,66 @@ class PostulanteController extends Controller
     {
         $request->validate([
             'ci' => 'required|string',
-            'ru' => 'required|string|unique:postulantes,ru',
-            'fecha_nacimiento' => 'required|date',
+
         ]);
 
-        $data = $apiService->getPostulanteByCI($request->ci);
+       $data = $apiService->getPersonaByCI($request->ci);
 
-        if (!$data) {
+
+        if (!$data || empty($data['data'])) {
             return back()->with('error', 'No se encontraron datos en el servicio externo.');
         }
 
+        $postulanteApi = $data['data'][0];
+
         // Verificar si ya existe en BD
-        $existe = Postulante::where('ci', $data['ci'])->first();
+        $existe = Postulante::where('ci', $postulanteApi['ci'])->first();
         if ($existe) {
             return back()->with('error', 'Este postulante ya está registrado en el sistema.');
         }
 
+        // Enviar datos a la vista completar.blade.php
+        return view('postulantes.completar', ['data' => $postulanteApi]);
+    }
+
+    // guardar el postulante con datos completados
+    public function storeDesdeApi(Request $request)
+    {
+        $request->validate([
+            'ci' => 'required|unique:postulantes,ci',
+            'ru' => 'required|string|unique:postulantes,ru',
+            'fecha_nacimiento' => 'required|date',
+            'nombre' => 'required|string',
+            'paterno' => 'nullable|string',
+            'materno' => 'nullable|string',
+            'email' => 'required|email|unique:users,email',
+        ]);
+
         // Crear usuario
-        $primerNombre = explode(' ', trim($data['nombre']))[0];
+        $primerNombre = explode(' ', trim($request->nombre))[0];
         $user = User::create([
-            'name' => $data['nombre'] . ' ' . $data['paterno'],
-            'email' => $data['email'],
+            'name' => trim($request->nombre . ' ' . ($request->paterno ?? '')),
+
+            'email' => $request->email,
             'password' => \Hash::make($primerNombre . '123'),
         ]);
         $user->assignRole('postulante');
 
         // Crear postulante
         Postulante::create([
-            'nombre' => $data['nombre'],
-            'paterno' => $data['paterno'],
-            'materno' => $data['materno'],
-            'ci' => $data['ci'],
+            'nombre' => $request->nombre,
+            'paterno' => $request->paterno,
+            'materno' => $request->materno,
+            'ci' => $request->ci,
             'ru' => $request->ru,
             'fecha_nacimiento' => $request->fecha_nacimiento,
-            'email' => $data['email'],
-            'telefono' => $data['celular'] ?? 'Sin número',
+            'email' => $request->email,
+            'telefono' => $request->telefono ?? 'Sin número',
             'user_id' => $user->id,
         ]);
 
-        return redirect()->route('postulantes.index')->with('success', 'Postulante importado desde API correctamente.');
+        return redirect()->route('postulantes.index')->with('success', 'Postulante importado y guardado correctamente.');
     }
-
-
-
     /**
      * Show the form for creating a new resource.
      */
@@ -90,8 +107,8 @@ class PostulanteController extends Controller
         //
         $request->validate([
             'nombre' => 'required|string|max:100',
-            'paterno' => 'required|string|max:100',
-            'materno' => 'required|string|max:100',
+            'paterno' => 'nullable|string|max:100',
+            'materno' => 'nullable|string|max:100',
             'fecha_nacimiento' => 'required|date',
             'ci' => 'required|unique:postulantes,ci',
             'ru' => 'required|unique:postulantes,ru',
@@ -102,7 +119,8 @@ class PostulanteController extends Controller
         // Crear usuario asociado
         $primerNombre = explode(' ', trim($request->nombre))[0];
         $user = User::create([
-            'name' => $request->nombre . ' ' . $request->paterno,
+            'name' => trim($request->nombre . ' ' . ($request->paterno ?? '')),
+
             'email' => $request->email,
             'password' => Hash::make($primerNombre . '123'), // contraseña por defecto
         ]);
@@ -148,20 +166,16 @@ class PostulanteController extends Controller
     public function update(Request $request, Postulante $postulante)
     {
         $request->validate([
-            'nombre' => 'required|string|max:100',
-            'paterno' => 'required|string|max:100',
-            'materno' => 'required|string|max:100',
-            'fecha_nacimiento' => 'required|date',
-            'ci' => 'required|unique:postulantes,ci,' . $postulante->id,
             'ru' => 'required|unique:postulantes,ru,' . $postulante->id,
-            'email' => 'required|email|unique:postulantes,email,' . $postulante->id,
-            'telefono' => 'required|string|max:20',
-            //'user_id' => 'required|exists:users,id',
+            'fecha_nacimiento' => 'required|date',
         ]);
 
-        $postulante->update($request->all());
+        $postulante->update([
+            'ru' => $request->ru,
+            'fecha_nacimiento' => $request->fecha_nacimiento,
+        ]);
 
-        return redirect()->route('postulantes.index')->with('success', 'Postulante actualizado correctamente.');
+        return redirect()->route('postulantes.index')->with('success', 'Datos del postulante actualizados correctamente.');
     }
 
     // Eliminación lógica (soft delete)

@@ -41,8 +41,13 @@ Route::middleware([
 Route::get('postulantes/eliminados', [PostulanteController::class, 'eliminados'])->name('postulantes.eliminados');
 Route::post('postulantes/{id}/restore', [PostulanteController::class, 'restore'])->name('postulantes.restore');
 
-// Importar desde API (flujo con formulario completar.blade.php)
-Route::post('postulantes/importar-api', [PostulanteController::class, 'importarDesdeApi'])->name('postulantes.importar.api');
+// Importar desde API (buscar y mostrar completar.blade.php)
+Route::post('postulantes/importar-api', [PostulanteController::class, 'importarDesdeApi'])
+    ->name('postulantes.importar.api');
+
+// Guardar después de completar manualmente
+Route::post('postulantes/store-desde-api', [PostulanteController::class, 'storeDesdeApi'])
+    ->name('postulantes.storeDesdeApi');
 
 // CRUD normal
 Route::resource('postulantes', PostulanteController::class)->parameters(['postulantes' => 'postulante']);
@@ -53,6 +58,10 @@ Route::resource('postulantes', PostulanteController::class)->parameters(['postul
 */
 Route::get('tutores/eliminados', [TutorController::class, 'eliminados'])->name('tutores.eliminados');
 Route::post('tutores/{id}/restore', [TutorController::class, 'restore'])->name('tutores.restore');
+// Importar desde API (buscar y mostrar completar.blade.php)
+Route::post('tutores/importar-api', [TutorController::class, 'importarDesdeApi'])->name('tutores.importar.api');
+Route::post('tutores/store-desde-api', [TutorController::class, 'storeDesdeApi'])->name('tutores.storeDesdeApi');
+// CRUD normal
 Route::resource('tutores', TutorController::class)->parameters(['tutores' => 'tutor']);
 
 // Avances que puede ver un tutor
@@ -67,6 +76,10 @@ Route::get('/tutor/avances', [AvanceController::class, 'verComoTutor'])
 */
 Route::get('tribunales/eliminados', [TribunalController::class, 'eliminados'])->name('tribunales.eliminados');
 Route::post('tribunales/{id}/restore', [TribunalController::class, 'restore'])->name('tribunales.restore');
+// Importar desde API (buscar y mostrar completar.blade.php)
+Route::post('tribunales/importar-api', [TribunalController::class, 'importarDesdeApi'])->name('tribunales.importar.api');
+Route::post('tribunales/store-desde-api', [TribunalController::class, 'storeDesdeApi'])->name('tribunales.storeDesdeApi');
+// CRUD normal
 Route::resource('tribunales', TribunalController::class)->parameters(['tribunales' => 'tribunal']);
 
 /*

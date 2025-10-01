@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Tribunal;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use App\Services\TextilApiService;
 
 class TribunalController extends Controller
 {
@@ -19,6 +20,81 @@ class TribunalController extends Controller
         $tribunales = Tribunal::orderBy('paterno')->paginate(10);
 
         return view('tribunales.index', compact('tribunales'));
+    }
+
+    public function importarDesdeApi(Request $request, TextilApiService $apiService)
+    {
+        $request->validate([
+            'ci' => 'required|string',
+        ]);
+
+        $data = $apiService->getPersonaByCI($request->ci);
+
+
+        if (!$data || empty($data['data'])) {
+            return back()->with('error', 'No se encontraron datos en el servicio externo.');
+        }
+
+        $tribunalApi = $data['data'][0];
+
+        // Verificar si ya existe en BD
+        $existe = Tribunal::where('ci', $tribunalApi['ci'])->first();
+        if ($existe) {
+            return back()->with('error', 'Este tribunal ya está registrado en el sistema.');
+        }
+
+        // Enviar datos a la vista completar.blade.php
+        return view('tribunales.completar', ['data' => $tribunalApi]);
+    }
+    // guardar el tribunal con datos completados
+    public function storeDesdeApi(Request $request)
+    {
+        $request->validate([
+            'ci' => 'required|unique:tutores,ci',
+            'fecha_nacimiento' => 'required|date',
+            'nombre' => 'required|string',
+            'paterno' => 'nullable|string',
+            'materno' => 'nullable|string',
+            'email' => 'required|email|unique:tutores,email',
+            'telefono' => 'required|string|max:20',
+            'grado' => 'required|string|max:50',
+        ]);
+
+        // Buscar si el usuario ya existe por email
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            // Si no existe, lo creamos
+            $primerNombre = explode(' ', trim($request->nombre))[0];
+            $user = User::create([
+                'name' => trim($request->nombre . ' ' . ($request->paterno ?? '')),
+                'email' => $request->email,
+                'password' => \Hash::make($primerNombre . '123'),
+            ]);
+        }
+
+        // Asignar rol tribunal si aún no lo tiene
+        if (!$user->hasRole('tribunal')) {
+            $user->assignRole('tribunal');
+        }
+
+        // Crear tribunal evitando duplicados
+        Tribunal::firstOrCreate(
+            ['ci' => $request->ci], // clave única
+            [
+                'nombre' => $request->nombre,
+                'paterno' => $request->paterno,
+                'materno' => $request->materno,
+                'fecha_nacimiento' => $request->fecha_nacimiento,
+                'email' => $request->email,
+                'telefono' => $request->telefono ?? 'Sin número',
+                'grado' => $request->grado,
+                'user_id' => $user->id,
+            ]
+        );
+
+        return redirect()->route('tribunales.index')
+            ->with('success', 'Tribunal importado y guardado correctamente.');
     }
 
     /**
@@ -40,8 +116,8 @@ class TribunalController extends Controller
         //
         $request->validate([
             'nombre' => 'required|string|max:100',
-            'paterno' => 'required|string|max:100',
-            'materno' => 'required|string|max:100',
+            'paterno' => 'nullable|string|max:100',
+            'materno' => 'nullable|string|max:100',
             'fecha_nacimiento' => 'required|date',
             'ci' => 'required|unique:tribunales,ci',
             'email' => 'required|email|unique:tribunales,email',
@@ -49,31 +125,41 @@ class TribunalController extends Controller
             'grado' => 'required|string|max:50',
         ]);
 
-        // Crear usuario asociado
-        $primerNombre = explode(' ', trim($request->nombre))[0];
-        $user = User::create([
-            'name' => $request->nombre . ' ' . $request->paterno,
-            'email' => $request->email,
-            'password' => Hash::make($primerNombre . '123'), // contraseña por defecto
-        ]);
+        // Buscar si el usuario ya existe por email
+        $user = User::where('email', $request->email)->first();
 
-        // Asignar rol "tribunal"
-        $user->assignRole('tribunal');
+        if (!$user) {
+            // Si no existe, lo creamos
+            $primerNombre = explode(' ', trim($request->nombre))[0];
+            $user = User::create([
+                'name' => trim($request->nombre . ' ' . ($request->paterno ?? '')),
+                'email' => $request->email,
+                'password' => \Hash::make($primerNombre . '123'),
+            ]);
+        }
 
-        // Crear tribunal asociado
+        // Asignar rol tribunal si aún no lo tiene
+        if (!$user->hasRole('tribunal')) {
+            $user->assignRole('tribunal');
+        }
 
-        Tribunal::create([
-            'nombre' => $request->nombre,
-            'paterno' => $request->paterno,
-            'materno' => $request->materno,
-            'fecha_nacimiento' => $request->fecha_nacimiento,
-            'ci' => $request->ci,
-            'email' => $request->email,
-            'telefono' => $request->telefono,
-            'grado' => $request->grado,
-            'user_id' => $user->id,
-        ]);
-        return redirect()->route('tribunales.index')->with('success', 'Tribunal creado exitosamente.');
+        // Crear tribunal evitando duplicados
+        Tribunal::firstOrCreate(
+            ['ci' => $request->ci], // clave única
+            [
+                'nombre' => $request->nombre,
+                'paterno' => $request->paterno,
+                'materno' => $request->materno,
+                'fecha_nacimiento' => $request->fecha_nacimiento,
+                'email' => $request->email,
+                'telefono' => $request->telefono ?? 'Sin número',
+                'grado' => $request->grado,
+                'user_id' => $user->id,
+            ]
+        );
+
+        return redirect()->route('tribunales.index')
+            ->with('success', 'Tribunal importado y guardado correctamente.');
     }
 
     /**
